@@ -1,5 +1,5 @@
 import expenses
-from datetime import datetime
+from datetime import datetime, date
 
 
 def get_int(prompt):
@@ -27,13 +27,17 @@ def get_float(prompt):
 def get_date(prompt):
     while True:
         text = input(prompt).strip()
+
+        # shortcuts for today
+        if text == "" or text.strip() in ("t", "today","T","Today"):
+            return date.today().isoformat() 
+
         try:
             # Enforce YYYY-MM-DD
             datetime.strptime(text, "%Y-%m-%d")
             return text
         except ValueError:
-            print("Please enter a date like YYYY-MM-DD (example: 2026-02-08).")
-
+            print("Please enter a date like YYYY-MM-DD, or press Enter for today")
 
 def get_yes_no(prompt):
     while True:
