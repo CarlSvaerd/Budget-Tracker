@@ -21,7 +21,7 @@ def get_float(prompt):
                 continue
             return value
         except ValueError:
-            print("Please enter a number (example: 12.50).")
+            print("Please enter a number (example: 12.50)")
 
 
 def get_date(prompt):
@@ -84,7 +84,7 @@ while True:
     if choice == "1":
         amount = get_float("Amount: ")
         category = input("Category: ").strip()
-        date = get_date("Date (YYYY-MM-DD): ")
+        date = get_date("Date (YYYY-MM-DD) or t / today for todays date: ")
         note = input("Note (optional): ").strip()
         if note == "":
             note = None
@@ -103,7 +103,7 @@ while True:
         expense_id = get_int("ID to update: ")
         amount = get_float("New amount: ")
         category = input("New category: ").strip()
-        date = get_date("New date (YYYY-MM-DD): ")
+        date = get_date("New date (YYYY-MM-DD) or t for today: ")
         note = input("New note (optional): ").strip()
         if note == "":
             note = None
