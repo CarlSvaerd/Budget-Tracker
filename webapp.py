@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for
 import expenses
+from database import get_connection
 
 app = Flask(__name__)
 
@@ -9,8 +10,25 @@ def home():
 
 @app.get("/expenses")
 def list_expenses():
-    rows = expenses.get_all_expenses()
-    return render_template("Site.html", rows=rows)
+    category = request.args.get("category", "").strip()
+
+    if category:
+        rows = expenses.get_expenses_by_category(category)
+        total = expenses.get_total_spent(category)
+    else:
+        rows = expenses.get_all_expenses()
+        total = expenses.get_total_spent()
+
+    category_totals = expenses.get_category_totals()
+
+    return render_template(
+        "Site.html",
+        rows=rows,
+        category=category,
+        total=total,
+        category_totals=category_totals
+    )
+
 
 
 @app.route("/expenses/new", methods=["GET", "POST"])
@@ -32,14 +50,6 @@ def delete_expense(expense_id):
     expenses.delete_expense(expense_id)
     return redirect(url_for("list_expenses"))
 
-def get_expense_by_id(expense_id):
-    conn = get_connection()
-    row = conn.execute(
-        "SELECT id, amount, category, date, note FROM expenses WHERE id = ?",
-        (expense_id,)
-    ).fetchone()
-    conn.close()
-    return row
 
 @app.route("/expenses/<int:expense_id>/edit", methods=["GET", "POST"])
 def edit_expense(expense_id):

@@ -1,32 +1,74 @@
 <!doctype html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <title>Expenses</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  </head>
-  <body>
-    <h1>Expenses</h1>
-    <a href="{{ url_for('new_expense') }}">Add Expense</a>
+<head>
+  <meta charset="utf-8">
+  <title>Expenses</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='Site.css') }}">
+</head>
+<body>
+  <h1>Expenses</h1>
+  <h2>Totals by category</h2>
 
-
-    <table>
-      <thead>
+  <table>
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in category_totals %}
         <tr>
-          <th>ID</th><th>Amount</th><th>Category</th><th>Date</th><th>Note</th>
+          <td>{{ c[0] }}</td>
+          <td>{{ "%.2f"|format(c[1]) }}</td>
         </tr>
-      </thead>
-      <tbody>
-        {% for r in rows %}
-          <tr>
-            <td>{{ r[0] }}</td>
-            <td>{{ "%.2f"|format(r[1]) }}</td>
-            <td>{{ r[3] }}</td>
-            <td>{{ r[2] }}</td>
-            <td>{{ r[4] or "" }}</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </body>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <form method="get" action="{{ url_for('list_expenses') }}">
+    <label>Filter category:</label>
+    <input type="text" name="category" value="{{ category }}">
+    <button type="submit">Filter</button>
+    <a href="{{ url_for('list_expenses') }}">Reset</a>
+  </form>
+  
+  <p><strong>Total spent{% if category %} in {{ category }}{% endif %}:</strong>
+   {{ "%.2f"|format(total) }}</p>
+
+
+<hr>
+
+  <p><a href="{{ url_for('new_expense') }}">Add expense</a></p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th><th>Amount</th><th>Date</th><th>Category</th><th>Note</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+        <tr>
+          <td>{{ r[0] }}</td>
+          <td>{{ "%.2f"|format(r[1]) }}</td>
+          <td>{{ r[2] }}</td>
+          <td>{{ r[3] }}</td>
+          <td>{{ r[4] or "" }}</td>
+          <td>
+            <a href="{{ url_for('edit_expense', expense_id=r[0]) }}">Edit</a>
+
+            <form action="{{ url_for('delete_expense', expense_id=r[0]) }}"
+                  method="post"
+                  style="display:inline;">
+              <button type="submit" onclick="return confirm('Delete this expense?')">
+                Delete
+              </button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
 </html>
