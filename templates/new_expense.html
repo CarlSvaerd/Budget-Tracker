@@ -10,8 +10,15 @@
         <label>Amount:</label>
         <input type="number" step="1" name="amount" required><br>
 
-        <label>Category:</label>
-        <input type="text" name="category" required><br>
+       <label>Category:</label>
+        <select name="category">
+        <option value="">-- Select category --</option>
+        {% for c in categories %}
+            <option value="{{ c['name'] }}">{{ c['name'] }}</option>
+        {% endfor %}
+        </select>
+
+        
 
         <label>Date:</label>
         <input type="date" name="date" required><br>

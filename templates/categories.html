@@ -1,0 +1,25 @@
+<h1>Categories</h1>
+
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <ul class="flashes">
+      {% for message in messages %}
+        <li>{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+<form method="post" action="{{ url_for('create_category') }}">
+  <label>New category:</label>
+  <input name="name">
+  <button type="submit">Add</button>
+</form>
+
+<ul>
+  {% for c in categories %}
+    <li>{{ c['name'] }}</li>
+  {% endfor %}
+</ul>
+
+<p><a href="{{ url_for('list_expenses') }}">Back to expenses</a></p>
