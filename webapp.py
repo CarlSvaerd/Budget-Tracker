@@ -126,17 +126,15 @@ def list_categories():
     categories = expenses.get_categories()
     return render_template("categories.html", categories=categories)
 
-@app.post("/categories")
+@app.route("/categories", methods=["POST"])
 def create_category():
     name = request.form.get("name", "").strip()
-    if not name:
-        flash("Category name is required.")
-        return redirect(url_for("list_categories"))
-
-    expenses.add_category(name)
-    flash(f"Category '{name}' added ")
+    try:
+        expenses.add_category(name)
+        flash("Category added!", "success")
+    except ValueError as e:
+        flash(str(e), "error")
     return redirect(url_for("list_categories"))
-
 
 
 if __name__ == "__main__":

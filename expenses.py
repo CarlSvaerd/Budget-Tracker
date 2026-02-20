@@ -11,23 +11,46 @@ DEFAULT_CATEGORIES = [
 
 def add_expense(amount, category, date, note):
     user_id = CURRENT_USER_ID
+
+    amount = _parse_amount(amount)
+    category = _clean_category(category)
+    date = _validate_date(date)
+    note = _clean_note(note)
+
     category_id = get_or_create_category_id(user_id, category)
 
     conn = get_connection()
-    conn.execute(
-        """
-        INSERT INTO expenses (user_id, category_id, amount, date, note)
-        VALUES (?, ?, ?, ?, ?)
-        """,
-        (user_id, category_id, amount, date, note),
-    )
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute(
+            """
+            INSERT INTO expenses (user_id, category_id, amount, date, note)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (user_id, category_id, amount, date, note),
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
+def _clean_note(note):
+    note = (note or "").strip()
+    if len(note) > 200:
+        raise ValueError("Note is too long (max 200 characters)")
+    return note
+
+
+def _clean_category(category):
+    category = (category or "").strip()
+    if not category:
+        raise ValueError("Category is required")
+    return category
+    
 def add_category(name):
     name = name.strip()
     if not name:
         raise ValueError("Category name cannot be empty")
+    if name.isdigit():
+        raise ValueError("Category name cannot be only numbers")
 
     conn = get_connection()
     conn.execute(
@@ -92,21 +115,46 @@ def delete_expense(expense_id):
     conn.commit()
     conn.close()
 
+
+def _parse_amount(amount):
+    try:
+        value = float(amount)
+    except (TypeError, ValueError):
+        raise ValueError("Amount must be a number")
+    if value <= 0:
+        raise ValueError("Amount must be greater than 0")
+    return value
+
+def _validate_date(date_str):
+    try:
+        datetime.strptime(date_str, "%Y-%m-%d")
+    except (TypeError, ValueError):
+        raise ValueError("Date must be in YYYY-MM-DD format")
+    return date_str
+
 def update_expense(expense_id, amount, category, date, note):
     user_id = CURRENT_USER_ID
+
+    amount = _parse_amount(amount)
+    category = _clean_category(category)
+    date = _validate_date(date)
+    note = _clean_note(note)
+
     category_id = get_or_create_category_id(user_id, category)
 
     conn = get_connection()
-    conn.execute(
-        """
-        UPDATE expenses
-        SET amount = ?, date = ?, note = ?, category_id = ?
-        WHERE id = ? AND user_id = ?
-        """,
-        (amount, date, note, category_id, expense_id, user_id),
-    )
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute(
+            """
+            UPDATE expenses
+            SET amount = ?, date = ?, note = ?, category_id = ?
+            WHERE id = ? AND user_id = ?
+            """,
+            (amount, date, note, category_id, expense_id, user_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
     
 def get_categories():
@@ -191,3 +239,4 @@ def get_or_create_category_id(user_id, category_name):
 
     conn.close()
     return new_id
+

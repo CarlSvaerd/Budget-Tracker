@@ -1,14 +1,13 @@
 <h1>Categories</h1>
 
-{% with messages = get_flashed_messages() %}
+{% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
-    <ul class="flashes">
-      {% for message in messages %}
-        <li>{{ message }}</li>
-      {% endfor %}
-    </ul>
+    {% for category, message in messages %}
+      <div class="flash {{ category }}">{{ message }}</div>
+    {% endfor %}
   {% endif %}
 {% endwith %}
+
 
 <form method="post" action="{{ url_for('create_category') }}">
   <label>New category:</label>
