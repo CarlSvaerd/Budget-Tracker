@@ -1,3 +1,5 @@
+from os import name
+
 from flask import Flask, render_template, request, redirect, url_for,flash
 import expenses
 from database import get_connection
@@ -23,7 +25,7 @@ def list_expenses():
         total = expenses.get_total_spent()
 
     category_totals = expenses.get_category_totals()
-    categories = expenses.get_categories()  # <- added
+    categories = expenses.get_categories() 
 
     return render_template(
         "Site.html",
@@ -31,7 +33,7 @@ def list_expenses():
         category=category,
         total=total,
         category_totals=category_totals,
-        categories=categories,  # <- added
+        categories=categories, 
     )
 
 @app.route("/expenses/new", methods=["GET", "POST"])
@@ -64,8 +66,13 @@ def new_expense():
             flash("Date is required.")
             return redirect(url_for("new_expense"))
 
-        expenses.add_expense(amount, category, date, note)
-        flash("Expense added ✅")
+        try:
+            expenses.add_expense(amount, category, date, note)
+        except ValueError as e:
+            flash(str(e))
+            return redirect(url_for("new_expense"))
+
+        flash("Expense added")
         return redirect(url_for("list_expenses"))
 
     expenses.ensure_default_categories()
@@ -74,8 +81,13 @@ def new_expense():
 
 @app.post("/expenses/<int:expense_id>/delete")
 def delete_expense(expense_id):
-    expenses.delete_expense(expense_id)
-    flash("Expense deleted ")
+    deleted = expenses.delete_expense(expense_id)
+
+    if deleted:
+        flash("Expense deleted.", "success")
+    else:
+        flash("Expense not found.", "error")
+
     return redirect(url_for("list_expenses"))
 
 @app.route("/expenses/<int:expense_id>/edit", methods=["GET", "POST"])
@@ -107,18 +119,25 @@ def edit_expense(expense_id):
         if not date:
             flash("Date is required.")
             return redirect(url_for("edit_expense", expense_id=expense_id))
-
-        expenses.update_expense(expense_id, amount, category, date, note)
-        flash("Expense updated")
+        try:
+            updated = expenses.update_expense(expense_id, amount, category, date, note)
+        except ValueError as e:
+            flash(str(e))
+            return redirect(url_for("edit_expense", expense_id=expense_id))
+        if updated:
+            flash("Expense updated")
+        else:
+            flash("Expense not found or could not be updated.", "error")
         return redirect(url_for("list_expenses"))
 
-    row = expenses.get_expense_by_id(expense_id)
-    if row is None:
-        return "Not found", 404
+    r = expenses.get_expense_by_id(expense_id)
+    if not r:
+        flash("Expense not found.", "error")
+        return redirect(url_for("list_expenses"))
 
     expenses.ensure_default_categories()
     categories = expenses.get_categories()
-    return render_template("edit_expense.html", r=row, categories=categories)
+    return render_template("edit_expense.html", r=r, categories=categories)
 
 @app.get("/categories")
 def list_categories():
@@ -129,11 +148,11 @@ def list_categories():
 @app.route("/categories", methods=["POST"])
 def create_category():
     name = request.form.get("name", "").strip()
-    try:
-        expenses.add_category(name)
-        flash("Category added!", "success")
-    except ValueError as e:
-        flash(str(e), "error")
+    added = expenses.add_category(name)
+    if added:
+        flash("Category added.", "success")
+    else:
+        flash("That category already exists.", "error")
     return redirect(url_for("list_categories"))
 
 

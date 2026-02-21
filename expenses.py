@@ -1,4 +1,6 @@
 from database import get_connection
+from datetime import datetime
+
 
 CURRENT_USER_ID = 1
 
@@ -12,8 +14,8 @@ DEFAULT_CATEGORIES = [
 def add_expense(amount, category, date, note):
     user_id = CURRENT_USER_ID
 
-    amount = _parse_amount(amount)
-    category = _clean_category(category)
+    amount = verify_amount(amount)
+    category = verify_category_name(category)
     date = _validate_date(date)
     note = _clean_note(note)
 
@@ -39,26 +41,33 @@ def _clean_note(note):
     return note
 
 
-def _clean_category(category):
-    category = (category or "").strip()
-    if not category:
-        raise ValueError("Category is required")
-    return category
-    
-def add_category(name):
-    name = name.strip()
+
+def verify_category_name(name: str) -> str:
+    name = (name or "").strip()
+    name = " ".join(name.split())
+
     if not name:
         raise ValueError("Category name cannot be empty")
     if name.isdigit():
         raise ValueError("Category name cannot be only numbers")
+    if len(name) > 30:
+        raise ValueError("Category name is too long (max 30 characters)")
+
+    return name
+def add_category(name):
+    name = verify_category_name(name)
 
     conn = get_connection()
-    conn.execute(
-        "INSERT OR IGNORE INTO categories (user_id, name) VALUES (?, ?)",
-        (CURRENT_USER_ID, name),
-    )
-    conn.commit()
-    conn.close()
+    try:
+        cur = conn.execute(
+            "INSERT OR IGNORE INTO categories (user_id, name) VALUES (?, ?)",
+            (CURRENT_USER_ID, name),
+        )
+        conn.commit()
+
+        return cur.rowcount == 1
+    finally:
+        conn.close()
 
 def get_total_spent(category=None):
     conn = get_connection()
@@ -108,15 +117,17 @@ def get_category_totals():
 
 def delete_expense(expense_id):
     conn = get_connection()
-    conn.execute(
-        "DELETE FROM expenses WHERE id = ? AND user_id = ?",
-        (expense_id, CURRENT_USER_ID),
-    )
-    conn.commit()
-    conn.close()
+    try:
+        cur = conn.execute(
+            "DELETE FROM expenses WHERE id = ? AND user_id = ?",
+            (expense_id, CURRENT_USER_ID),
+        )
+        conn.commit()
+        return cur.rowcount == 1
+    finally:
+        conn.close()
 
-
-def _parse_amount(amount):
+def verify_amount(amount):
     try:
         value = float(amount)
     except (TypeError, ValueError):
@@ -126,17 +137,33 @@ def _parse_amount(amount):
     return value
 
 def _validate_date(date_str):
+    if date_str is None:
+        raise ValueError("Date is required")
+
+    date_str = str(date_str).strip()
+    if not date_str:
+        raise ValueError("Date is required")
+
+    parts = date_str.split("-")
+    if len(parts) != 3 or any(not p.isdigit() for p in parts):
+        raise ValueError("Date must be in YYYY-MM-DD format")
+
+    year = int(parts[0])
+    if year < 1900 or year > 2100:
+        raise ValueError("Year must be between 1900 and 2100")
+
     try:
         datetime.strptime(date_str, "%Y-%m-%d")
-    except (TypeError, ValueError):
-        raise ValueError("Date must be in YYYY-MM-DD format")
+    except ValueError:
+        raise ValueError("Invalid date")
+
     return date_str
 
 def update_expense(expense_id, amount, category, date, note):
     user_id = CURRENT_USER_ID
 
-    amount = _parse_amount(amount)
-    category = _clean_category(category)
+    amount = verify_amount(amount)
+    category = verify_category_name(category)
     date = _validate_date(date)
     note = _clean_note(note)
 
@@ -144,7 +171,7 @@ def update_expense(expense_id, amount, category, date, note):
 
     conn = get_connection()
     try:
-        conn.execute(
+        cur =conn.execute(
             """
             UPDATE expenses
             SET amount = ?, date = ?, note = ?, category_id = ?
@@ -153,6 +180,7 @@ def update_expense(expense_id, amount, category, date, note):
             (amount, date, note, category_id, expense_id, user_id),
         )
         conn.commit()
+        return cur.rowcount == 1
     finally:
         conn.close()
 
@@ -213,30 +241,32 @@ def get_expense_by_id(expense_id):
     return row
 
 def get_or_create_category_id(user_id, category_name):
-    category_name = category_name.strip()
+    category_name = verify_category_name(category_name)
 
     conn = get_connection()
+    #COLLATE NOCASE allows us to treat "Groceries" and "groceries" as the same category
+    try:
+        row = conn.execute(
+            "SELECT id FROM categories WHERE user_id = ? AND name = ? COLLATE NOCASE",
+            (user_id, category_name),
+        ).fetchone()
 
-    row = conn.execute(
-        "SELECT id FROM categories WHERE user_id = ? AND name = ?",
-        (user_id, category_name),
-    ).fetchone()
+        if row:
+            conn.close()
+            return row[0]
 
-    if row:
+        conn.execute(
+            "INSERT INTO categories (user_id, name) VALUES (?, ?)",
+            (user_id, category_name),
+        )
+        conn.commit()
+
+        new_id = conn.execute(
+            "SELECT id FROM categories WHERE user_id = ? AND name = ? COLLATE NOCASE",
+            (user_id, category_name),
+        ).fetchone()[0]
+        return new_id
+    finally:
         conn.close()
-        return row[0]
-
-    conn.execute(
-        "INSERT INTO categories (user_id, name) VALUES (?, ?)",
-        (user_id, category_name),
-    )
-    conn.commit()
-
-    new_id = conn.execute(
-        "SELECT id FROM categories WHERE user_id = ? AND name = ?",
-        (user_id, category_name),
-    ).fetchone()[0]
-
-    conn.close()
-    return new_id
+  
 

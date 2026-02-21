@@ -4,6 +4,16 @@
     <title>Add Expense</title>
 </head>
 <body>
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <ul class="flash-messages">
+        {% for message in messages %}
+            <li class="flash error">{{ message }}</li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+    {% endwith %}
+
     <h1>Add Expense</h1>
 
     <form method="POST">
