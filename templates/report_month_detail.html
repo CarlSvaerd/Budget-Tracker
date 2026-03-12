@@ -1,0 +1,15 @@
+<h1>Report for {{ month }}</h1>
+
+<h2>Totals by category</h2>
+<ul>
+  {% for r in cats %}
+    <li>{{ r['category'] }} — {{ "%.2f"|format(r['total']) }}</li>
+  {% endfor %}
+</ul>
+
+<h2>Top expenses</h2>
+<ul>
+  {% for e in top %}
+    <li>{{ e['date'] }} — {{ e['category'] }} — {{ "%.2f"|format(e['amount']) }} — {{ e['note'] }}</li>
+  {% endfor %}
+</ul>

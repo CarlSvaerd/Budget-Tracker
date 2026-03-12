@@ -1,0 +1,11 @@
+<h1>Monthly totals</h1>
+<ul>
+  {% for r in months %}
+    <li>
+      <a href="{{ url_for('report_month_detail', month=r['month']) }}">
+        {{ r['month'] }}
+      </a>
+      — {{ "%.2f"|format(r['total']) }}
+    </li>
+  {% endfor %}
+</ul>

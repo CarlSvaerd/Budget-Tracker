@@ -155,6 +155,16 @@ def create_category():
         flash("That category already exists.", "error")
     return redirect(url_for("list_categories"))
 
+@app.route("/reports/months")
+def report_months():
+    months = expenses.get_monthly_totals()
+    return render_template("report_months.html", months=months)
+
+@app.route("/reports/month/<month>")
+def report_month_detail(month):
+    cats = expenses.get_category_totals_for_month(month)
+    top = expenses.get_top_expenses(limit=10, month_yyyy_mm=month)
+    return render_template("report_month_detail.html", month=month, cats=cats, top=top)
 
 if __name__ == "__main__":
     app.run(debug=True)

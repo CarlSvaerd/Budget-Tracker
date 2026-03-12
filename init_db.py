@@ -18,7 +18,6 @@ if row is None:
     conn.execute("INSERT INTO users (id, name) VALUES (1, 'Demo User')")
     conn.commit()
 
-# seed default standardized categories for the demo user
 default_categories = [
     "Groceries", "Rent", "Utilities", "Transportation", "Dining",
     "Entertainment", "Healthcare", "Insurance", "Education",

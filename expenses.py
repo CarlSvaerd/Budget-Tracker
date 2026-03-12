@@ -252,7 +252,6 @@ def get_or_create_category_id(user_id, category_name):
         ).fetchone()
 
         if row:
-            conn.close()
             return row[0]
 
         conn.execute(
@@ -270,3 +269,68 @@ def get_or_create_category_id(user_id, category_name):
         conn.close()
   
 
+
+def get_monthly_totals():
+    conn = get_connection()
+    try:
+        return conn.execute(
+            """
+            SELECT substr(date, 1, 7) AS month, COALESCE(SUM(amount), 0) AS total
+            FROM expenses
+            WHERE user_id = ?
+            GROUP BY month
+            ORDER BY month DESC
+            """,
+            (CURRENT_USER_ID,),
+        ).fetchall()
+    finally:
+        conn.close()
+
+
+def get_category_totals_for_month(month_yyyy_mm: str):
+    conn = get_connection()
+    try:
+        return conn.execute(
+            """
+            SELECT c.name AS category, COALESCE(SUM(e.amount), 0) AS total
+            FROM expenses e
+            JOIN categories c ON c.id = e.category_id
+            WHERE e.user_id = ? AND substr(e.date, 1, 7) = ?
+            GROUP BY c.name
+            ORDER BY total DESC
+            """,
+            (CURRENT_USER_ID, month_yyyy_mm),
+        ).fetchall()
+    finally:
+        conn.close()
+
+
+def get_top_expenses(limit: int = 10, month_yyyy_mm: str | None = None):
+    conn = get_connection()
+    try:
+        if month_yyyy_mm:
+            return conn.execute(
+                """
+                SELECT e.id, e.amount, e.date, c.name AS category, e.note
+                FROM expenses e
+                JOIN categories c ON c.id = e.category_id
+                WHERE e.user_id = ? AND substr(e.date, 1, 7) = ?
+                ORDER BY e.amount DESC, e.date DESC
+                LIMIT ?
+                """,
+                (CURRENT_USER_ID, month_yyyy_mm, limit),
+            ).fetchall()
+
+        return conn.execute(
+            """
+            SELECT e.id, e.amount, e.date, c.name AS category, e.note
+            FROM expenses e
+            JOIN categories c ON c.id = e.category_id
+            WHERE e.user_id = ?
+            ORDER BY e.amount DESC, e.date DESC
+            LIMIT ?
+            """,
+            (CURRENT_USER_ID, limit),
+        ).fetchall()
+    finally:
+        conn.close()
